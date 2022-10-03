@@ -26,7 +26,7 @@ struct sdp_params {
   bool is_causal;
 };
 
-enum class SDPBackend {flash_attention, math, error};
+enum class SDPBackend {flash_attention, efficient_attention, math, error};
 
 #define CHECK_DTYPE(tensor, types)                                    \
   if (std::find(types.begin(), types.end(), params.tensor.dtype()) == \
@@ -91,11 +91,11 @@ inline bool check_tensor_shapes(sdp_params params, bool debug) {
 }
 
 #define CHECK_HEAD_SIZE(tensor)                                              \
-  if ((params.tensor.size(-1) % 8 != 0) && (params.tensor.size(-1) > 128)) { \
+  if ((params.tensor.size(-1) % 8 != 0) || (params.tensor.size(-1) > 128)) { \
     TORCH_CHECK(                                                             \
         debug,                                                               \
         #tensor,                                                             \
-        "'s last dimensions is not a multiple of 8 and last then 128. ",     \
+        "'s last dimensions is not a multiple of 8 and less than 128. ",     \
         #tensor,                                                             \
         ".size(-1) = ",                                                      \
         params.tensor.size(-1));                                             \
@@ -165,10 +165,35 @@ inline bool use_flash_attention(sdp_params params, bool debug) {
   return true;
 }
 
+inline bool use_mem_efficient_attention(sdp_params params, bool debug) {
+  #ifndef USE_FLASH_ATTENTION
+    TORCH_CHECK(debug, "Torch was not compiled with flash attention.");
+    return false;
+  #endif
+  // Constraints specific to flash attention
+  static const std::vector<caffe2::ScalarType> flash_dtypes{at::kHalf, at::kFloat, at::kBFloat16};
+
+  //  Define gate functions that determine if a flash kernel can be ran
+  std::vector<std::function<bool(sdp_params, bool)>> constraints{
+      check_runtime_disabled,
+      check_for_attn_weights,
+      check_for_attn_mask};
+  for (auto& constraint : constraints) {
+    if (!constraint(params, debug)) {
+      return false;
+    }
+  }
+  if (!check_tensor_dtype(params, flash_dtypes, debug)) {
+    return false;
+  }
+  return true;
+}
+
 inline SDPBackend select_sdp_backend(sdp_params kernel_params) {
   // This function defines the priority order of the different sdp backends
   // 1. Flash Attention
-  // 2. Math fallback
+  // 2. Mem Efficient Attention
+  // 3. Math fallback
   auto& ctx = at::globalContext();
   if (!ctx.userEnabledMathSDP() && !ctx.userEnabledFlashSDP()){
        return SDPBackend::error;
@@ -178,6 +203,9 @@ inline SDPBackend select_sdp_backend(sdp_params kernel_params) {
   bool print_debug = false;
   if (use_flash_attention(kernel_params, !print_debug)) {
     return SDPBackend::flash_attention;
+  }
+  if (use_mem_efficient_attention(kernel_params, !print_debug)){
+    return SDPBackend::efficient_attention;
   }
   if (ctx.userEnabledMathSDP()){
        return SDPBackend::math;
