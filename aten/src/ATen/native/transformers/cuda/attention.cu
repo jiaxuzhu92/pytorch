@@ -13,7 +13,6 @@
 #include <ATen/native/cuda/MemoryAccess.cuh>
 #include <ATen/native/cuda/PersistentSoftmax.cuh>
 #include <ATen/native/cuda/block_reduce.cuh>
-#include <ATen/ops/_efficient_attention_forward.h>
 
 #include <c10/cuda/CUDAMathCompat.h>
 

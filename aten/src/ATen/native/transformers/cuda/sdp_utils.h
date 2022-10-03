@@ -211,12 +211,13 @@ inline SDPBackend select_sdp_backend(sdp_params kernel_params) {
        return SDPBackend::math;
   }
   // If we have gotten to this point then two things have happened:
-  // 1. use_flash_attention did not satisfy the constraints to be ran
+  // 1. use_flash_attention or use_mem_efficient did not satisfy the constraints to be ran
   // 2. The user has explicitly disabled the math kernel
   // We then re-run use_flash_attention with debug enabled to print out the
   // reason why the kernel was not selected
 
   print_debug = true;
+  use_mem_efficient_attention(kernel_params, !print_debug);
   use_flash_attention(kernel_params, !print_debug);
   return SDPBackend::error;
 }
