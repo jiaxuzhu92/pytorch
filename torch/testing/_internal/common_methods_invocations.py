@@ -11828,11 +11828,12 @@ op_db: List[OpInfo] = [
                          'test_schema_correctness', device_type='cuda', dtypes=(torch.bfloat16,)),
             # Doesn't support autocasting
             DecorateInfo(unittest.skip("Skipped!"), 'TestFakeTensorNonErroring', 'test_fake_autocast', device_type='cpu'),
-            DecorateInfo(unittest.skip("Skipped!"), 'TestFakeTensor', 'test_fake_autocast', device_type='cpu'),
+            DecorateInfo(unittest.skip("Skipped!"), 'TestFakeTensor', 'test_fake_autocast'),
             # No meta function
             DecorateInfo(unittest.skip("Skipped!"), 'TestProxyTensorOpInfo', 'test_make_fx_symbolic_exhaustive'),
             DecorateInfo(unittest.skip("Skipped!"), 'TestNormalizeOperators', 'test_normalize_operator_exhaustive'),
-            DecorateInfo(unittest.skip("Skipped"), 'TestDecomp', 'test_comprehensive'),),
+            DecorateInfo(unittest.skip("Skipped"), 'TestDecomp', 'test_comprehensive'),
+            DecorateInfo(unittest.skip("Skipped!"), 'TestFakeTensor', 'test_fake'),),
     ),
     UnaryUfuncInfo(
         'nn.functional.silu',
