@@ -65,6 +65,7 @@ import torch.backends.xnnpack
 import torch.cuda
 from torch import Tensor
 from torch._C import ScriptDict, ScriptList  # type: ignore[attr-defined]
+from torch._prims.context import TorchRefsMode
 from torch._six import string_classes
 from torch._utils_internal import get_writable_path
 from torch.nn import (
@@ -1367,16 +1368,23 @@ def freeze_rng_state():
     try:
         yield
     finally:
-        # Modes are not happy with torch.cuda.set_rng_state
-        # because it clones the state (which could produce a Tensor Subclass)
-        # and then grabs the new tensor's data pointer in generator.set_state.
-        #
-        # In the long run torch.cuda.set_rng_state should probably be
-        # an operator.
-        with no_dispatch(), disable_functorch():
-            if torch.cuda.is_available():
-                torch.cuda.set_rng_state(cuda_rng_state)
-            torch.set_rng_state(rng_state)
+        # TODO: Hack: set_rng_state calls torch ops (like clone), which is
+        # undesirable.  We don't want to hijack any calls after yielding.  So
+        # return immediately.  Note: this check will only work here (in the
+        # finally block) because we first need to yield to dispatch to
+        # TorchRefsMode.
+        mode = torch.overrides._get_current_function_mode()
+        if not (type(mode) is TorchRefsMode and hasattr(mode, 'mock') and mode.mock):
+            # Modes are not happy with torch.cuda.set_rng_state
+            # because it clones the state (which could produce a Tensor Subclass)
+            # and then grabs the new tensor's data pointer in generator.set_state.
+            #
+            # In the long run torch.cuda.set_rng_state should probably be
+            # an operator.
+            with no_dispatch(), disable_functorch():
+                if torch.cuda.is_available():
+                    torch.cuda.set_rng_state(cuda_rng_state)
+                torch.set_rng_state(rng_state)
 
 @contextlib.contextmanager
 def set_default_dtype(dtype):

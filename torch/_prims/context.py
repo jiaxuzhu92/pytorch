@@ -1,4 +1,5 @@
 import functools
+import unittest
 from contextlib import nullcontext
 from typing import Any, Callable, Dict, Sequence
 from warnings import warn
@@ -17,6 +18,9 @@ from torch._prims.nvfuser_executor import NvfuserPrimOperatorSupport
 
 from torch._prims_common import torch_function_passthrough
 from torch.fx.experimental.proxy_tensor import get_isolated_graphmodule
+
+
+MOCK_REF_RESULT = unittest.mock.sentinel.some_object
 
 
 @functools.lru_cache(None)
@@ -145,10 +149,12 @@ class TorchRefsMode(torch.overrides.TorchFunctionMode):
     def __init__(
         self,
         strict=False,
+        mock=False,
         should_fallback_fn=lambda *_: False,
         prims_mode_cls=nullcontext,
     ):
         self.strict = strict
+        self.mock = mock
         self.should_fallback_fn = should_fallback_fn
         self.prims_mode_cls = prims_mode_cls
 
@@ -184,6 +190,26 @@ class TorchRefsMode(torch.overrides.TorchFunctionMode):
                 return orig_func(*args, **kwargs)
             # torch calls inside func should be interpreted as refs calls
             with self:
+                if self.mock:
+                    # Replace the original func body with one that returns the
+                    # mock sentinel value.
+                    #
+                    # This will still dispatch to the original torch function
+                    # first before hitting the ref (via handle_torch_function).
+                    #
+                    # Regular PyTorch contains a mix of Python and C++
+                    # implementations (the latter are exposed as builtins).  For
+                    # some of those, signature information is not available.
+                    # However, all primTorch refs are written in Python, which
+                    # means that signature information is always there, and the
+                    # mock will have it as well.
+                    #
+                    # The above two things is exactly what we need to enable API
+                    # compatibility checking between torch ops and refs without
+                    # much computational overhead.
+                    func = unittest.mock.create_autospec(
+                        func, return_value=MOCK_REF_RESULT
+                    )
                 return func(*args, **kwargs)
         if self.strict:
             raise RuntimeError(
