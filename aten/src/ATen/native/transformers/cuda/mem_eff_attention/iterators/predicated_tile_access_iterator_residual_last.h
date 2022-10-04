@@ -55,6 +55,7 @@
 #include <cutlass/tensor_ref.h>
 #include <cutlass/tensor_view.h>
 #include <cutlass/transform/threadblock/predicated_tile_access_iterator_params.h>
+#include <cutlass/transform/threadblock/predicated_tile_access_iterator.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 

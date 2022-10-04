@@ -136,7 +136,7 @@ struct AttentionScalingCoefsUpdaterSm80
           accum_t,
           kWarpSize> {
   static_assert(
-      std::is_same<typename T::Layout, cutlass::layout::RowMajor>::value);
+      std::is_same<typename T::Layout, cutlass::layout::RowMajor>::value, "");
 
   using Policy = typename T::Policy;
   using InstructionShape = typename T::InstructionShape;
@@ -216,7 +216,7 @@ struct AttentionScalingCoefsUpdaterVolta
           accum_t,
           kWarpSize> {
   static_assert(
-      std::is_same<typename T::Layout, cutlass::layout::RowMajor>::value);
+      std::is_same<typename T::Layout, cutlass::layout::RowMajor>::value, "");
 
   using Policy = typename T::Policy;
   using InstructionShape = typename T::InstructionShape;
@@ -337,9 +337,9 @@ struct AttentionScalingCoefsUpdaterSimt
   using Delta = typename T::Delta;
   using Shape = typename T::Shape;
   static_assert(
-      std::is_same<typename T::Layout, cutlass::layout::RowMajor>::value);
+      std::is_same<typename T::Layout, cutlass::layout::RowMajor>::value, "");
   static_assert(
-      std::is_same<typename T::Iterations, typename T::Iterations>::value);
+      std::is_same<typename T::Iterations, typename T::Iterations>::value, "");
 
   template <typename DT, typename F>
   CUTLASS_DEVICE static bool reduceSameRow(int lane_id, DT& myValue, F fn) {
@@ -390,7 +390,7 @@ struct AttentionScalingCoefsUpdaterSimt
       typename T::TensorCoord const& tile_offset) {
     static_assert(std::is_same<
                   typename Policy::LaneLayout,
-                  cutlass::layout::RowMajorInterleaved<1>>::value);
+                  cutlass::layout::RowMajorInterleaved<1>>::value, "");
     typename Policy::LaneLayout lane_layout = Policy::get_lane_layout();
 
     cutlass::MatrixCoord lane_offset = lane_layout.inverse(lane_id) *

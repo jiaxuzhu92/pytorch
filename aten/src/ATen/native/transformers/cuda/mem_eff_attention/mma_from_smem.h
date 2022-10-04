@@ -1038,7 +1038,7 @@ class MmaMultistageFromSharedMemory : public MmaBaseFromSharedMemory<
 namespace {
 template <typename A, typename B>
 struct AssertIsSame {
-  static_assert(std::is_same<A, B>::value);
+  static_assert(std::is_same<A, B>::value, "");
   using CHECK = bool;
 };
 } // namespace

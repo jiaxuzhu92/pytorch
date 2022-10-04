@@ -38,6 +38,7 @@
 #include <cutlass/aligned_buffer.h>
 #include <cutlass/arch/cache_operation.h>
 #include <cutlass/arch/memory.h>
+#include <cutlass/arch/mma.h>
 #include <cutlass/array.h>
 #include <cutlass/cutlass.h>
 #include <cutlass/gemm/gemm.h>
