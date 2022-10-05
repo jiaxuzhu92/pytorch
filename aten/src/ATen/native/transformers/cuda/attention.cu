@@ -633,6 +633,10 @@ std::tuple<at::Tensor, at::Tensor> _efficient_attention_forward(
     bool compute_logsumexp,
     bool causal) {
 #if defined(USE_FLASH_ATTENTION)
+// TODO In theory it is possible to compile with _CUDA_ARCH < 5.0 and run on a
+// machine that is >= 5.0. In practice, this is not a problem but since
+// this would avoid runtime architecture checks, we should look into it
+
   TORCH_CHECK(query.dim() == 4);
   TORCH_CHECK(key.dim() == 4);
   TORCH_CHECK(value.dim() == 4);
