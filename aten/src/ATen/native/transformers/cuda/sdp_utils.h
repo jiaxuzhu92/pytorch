@@ -136,6 +136,23 @@ inline bool check_gpu_sm75_or_greater(sdp_params params, bool debug) {
   return true;
 }
 
+inline bool check_gpu_sm50_or_greater(sdp_params params, bool debug) {
+  // Check that the gpu is capable of running flash attention
+  auto dprops = at::cuda::getCurrentDeviceProperties();
+  bool is_sm50 = dprops->major >= 5;
+  if (!(is_sm50)) {
+    TORCH_CHECK(
+        !debug,
+        "Mem Efficient Attention only supports sm5x or greater gpu architectures. Attempting to run on a sm ",
+        dprops->major,
+        ".",
+        dprops->minor,
+        " gpu.");
+    return false;
+  }
+  return true;
+}
+
 inline bool use_flash_attention(sdp_params params, bool debug) {
 #ifndef USE_FLASH_ATTENTION
   TORCH_CHECK(!debug, "Torch was not compiled with flash attention.");
@@ -175,6 +192,7 @@ inline bool use_mem_efficient_attention(sdp_params params, bool debug) {
 
   //  Define gate functions that determine if a flash kernel can be ran
   std::vector<std::function<bool(sdp_params, bool)>> constraints{
+      check_gpu_sm50_or_greater,
       check_runtime_disabled,
       check_for_attn_weights,
       check_tensor_shapes,

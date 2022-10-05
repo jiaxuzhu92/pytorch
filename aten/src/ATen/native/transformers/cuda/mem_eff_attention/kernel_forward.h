@@ -874,9 +874,8 @@ __global__ void __launch_bounds__(AK::kNumThreads, AK::kMinBlocksPerSm)
   INSTANTIATE_ATTENTION_KERNEL_FORWARD_DISABLED(80, __VA_ARGS__)
 
 // Enable the right one based on __CUDA_ARCH__
-#ifndef __CUDA_ARCH__
-#elif __CUDA_ARCH__ < 500
-#error "Need cuda arch at least 5.0"
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ < 500
+// "Need cuda arch at least 5.0"
 #elif __CUDA_ARCH__ < 700
 #undef INSTANTIATE_ATTENTION_KERNEL_FORWARD_SM50
 #define INSTANTIATE_ATTENTION_KERNEL_FORWARD_SM50(...) \
